@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDF9F5">
+<title>یه قرار کوچیک با هم؟</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://nominatim.openstreetmap.org">
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ══ decorative backgrounds ══ -->
+  <div class="scene scene--calm" aria-hidden="true">
+    <svg class="scene__sprig scene__sprig--tr" viewBox="0 0 200 200">
+      <use href="#art-sprig"></use>
+    </svg>
+    <svg class="scene__sprig scene__sprig--bl" viewBox="0 0 200 200">
+      <use href="#art-sprig"></use>
+    </svg>
+  </div>
+  <div class="scene scene--sunset" aria-hidden="true">
+    <svg class="skyline" viewBox="0 0 400 150" preserveAspectRatio="none">
+      <use href="#art-skyline"></use>
+    </svg>
+    <div class="hearts" id="hearts"></div>
+  </div>
+
+  <!-- ══ screens ══ -->
+  <main class="stage" id="stage">
+
+    <!-- ── 0 · start ── -->
+    <section class="screen screen--start" data-screen="0" aria-labelledby="t0">
+      <div class="screen__body center">
+        <div class="headline-mark"><svg class="i i--lg" viewBox="0 0 24 24"><use href="#i-heart"></use></svg></div>
+        <h1 class="title title--hero" id="t0">یه قرار کوچیک با هم؟ <span class="emo">❤️</span></h1>
+        <p class="lead">چندتا سؤال دارم، جواب بده تا ببینیم آخرش کجا می‌رسیم...</p>
+        <button class="btn btn--primary btn--xl" data-go="1">شروع کنیم <svg class="i" viewBox="0 0 24 24"><use href="#i-arrow-l"></use></svg></button>
+        <svg class="flourish flourish--bottom" viewBox="0 0 220 40"><use href="#art-flourish"></use></svg>
+      </div>
+    </section>
+
+    <!-- ── 1 · place ── -->
+    <section class="screen" data-screen="1" aria-labelledby="t1" hidden>
+      <div class="topbar">
+        <span class="topbar__spacer"></span>
+        <ol class="progress" id="progress" aria-label="پیشرفت"></ol>
+        <button class="icon-btn" data-back aria-label="بازگشت به مرحله قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-l"></use></svg></button>
+      </div>
+
+      <div class="screen__body">
+        <div class="screen__head">
+          <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-pin"></use></svg>
+          <h2 class="title" id="t1">اول بگو قرارِ کجا بریم؟ <span class="emo">📍</span></h2>
+          <p class="lead">از روی نقشه نقطه بذار یا اسم مکان رو جستجو کن...</p>
+        </div>
+
+        <div class="search-wrap">
+          <div class="search">
+            <svg class="i search__icon" viewBox="0 0 24 24"><use href="#i-search"></use></svg>
+            <input id="place-input" type="search" class="search__input" placeholder="جستجوی مکان..." autocomplete="off" aria-label="جستجوی مکان" aria-autocomplete="list" aria-controls="place-results">
+            <button class="search__clear" id="place-clear" type="button" aria-label="پاک کردن" hidden><svg class="i" viewBox="0 0 24 24"><use href="#i-x"></use></svg></button>
+          </div>
+          <ul class="results" id="place-results" role="listbox" aria-label="نتایج جستجو" hidden></ul>
+        </div>
+
+        <div class="map-wrap">
+          <div class="map" id="map" role="application" aria-label="نقشه انتخاب مکان"></div>
+          <div class="map__pick" id="map-pick" hidden>
+            <svg class="i" viewBox="0 0 24 24"><use href="#i-hand"></use></svg>
+            روی نقشه بزن یا نشانگر رو بکش
+          </div>
+          <div class="map__zoom">
+            <button type="button" id="zoom-in" aria-label="بزرگ‌نمایی"><svg class="i" viewBox="0 0 24 24"><use href="#i-plus"></use></svg></button>
+            <button type="button" id="zoom-out" aria-label="کوچک‌نمایی"><svg class="i" viewBox="0 0 24 24"><use href="#i-minus"></use></svg></button>
+          </div>
+        </div>
+
+        <article class="venue" id="venue" hidden>
+          <div class="venue__thumb" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><use href="#i-heart"></use></svg></div>
+          <div class="venue__meta">
+            <h3 class="venue__name" id="venue-name">کافه فلان</h3>
+            <p class="venue__addr" id="venue-addr">خیابان ولیعصر، تهران</p>
+          </div>
+          <svg class="i tint venue__pin" viewBox="0 0 24 24"><use href="#i-pin"></use></svg>
+        </article>
+      </div>
+
+      <footer class="screen__foot">
+        <button class="btn btn--primary" data-go="2" id="go-place" disabled>اینجا بریم <svg class="i" viewBox="0 0 24 24"><use href="#i-arrow-l"></use></svg></button>
+        <p class="hint" id="place-hint">اول یه مکان انتخاب کن</p>
+      </footer>
+    </section>
+
+    <!-- ── 2 · time ── -->
+    <section class="screen" data-screen="2" aria-labelledby="t2" hidden>
+      <div class="topbar">
+        <span class="topbar__spacer"></span>
+        <ol class="progress" aria-hidden="true"></ol>
+        <button class="icon-btn" data-back aria-label="بازگشت به مرحله قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-l"></use></svg></button>
+      </div>
+
+      <div class="screen__body">
+        <div class="screen__head">
+          <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-clock"></use></svg>
+          <h2 class="title" id="t2">حالا چه ساعتی همدیگه رو ببینیم؟ <span class="emo">🕐</span></h2>
+          <p class="lead">به ساعت خوشت انتخاب کن...</p>
+        </div>
+
+        <div class="clock" role="group" aria-label="انتخاب ساعت">
+          <div class="clock__frame" aria-hidden="true"></div>
+          <div class="clock__col">
+            <button class="clock__step" type="button" data-step="hour:+1" aria-label="یک ساعت بعد"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-u"></use></svg></button>
+            <ul class="wheel" id="wheel-h" tabindex="0" role="listbox" aria-label="ساعت"></ul>
+            <button class="clock__step" type="button" data-step="hour:-1" aria-label="یک ساعت قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-d"></use></svg></button>
+          </div>
+          <span class="clock__colon" aria-hidden="true">:</span>
+          <div class="clock__col">
+            <button class="clock__step" type="button" data-step="min:+1" aria-label="پنج دقیقه بعد"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-u"></use></svg></button>
+            <ul class="wheel" id="wheel-m" tabindex="0" role="listbox" aria-label="دقیقه"></ul>
+            <button class="clock__step" type="button" data-step="min:-1" aria-label="پنج دقیقه قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-d"></use></svg></button>
+          </div>
+        </div>
+
+        <p class="period" id="period" aria-live="polite"></p>
+      </div>
+
+      <footer class="screen__foot">
+        <button class="btn btn--primary" data-go="3">این ساعت خوبه <svg class="i" viewBox="0 0 24 24"><use href="#i-arrow-l"></use></svg></button>
+      </footer>
+    </section>
+
+    <!-- ── 3 · food ── -->
+    <section class="screen" data-screen="3" aria-labelledby="t3" hidden>
+      <div class="topbar">
+        <span class="topbar__spacer"></span>
+        <ol class="progress" aria-hidden="true"></ol>
+        <button class="icon-btn" data-back aria-label="بازگشت به مرحله قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-l"></use></svg></button>
+      </div>
+
+      <div class="screen__body">
+        <div class="screen__head">
+          <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-fork"></use></svg>
+          <h2 class="title" id="t3">خب... حالا قسمت مهم ماجرا <span class="emo">😋</span></h2>
+          <p class="lead">چی بخوریم؟</p>
+        </div>
+
+        <div class="grid" id="food-grid" role="group" aria-label="انتخاب غذا"></div>
+
+        <div class="field" id="food-other-field" hidden>
+          <label class="field__label" for="food-other">خودت بنویس چی دوست داری...</label>
+          <input class="field__input" id="food-other" type="text" maxlength="60" placeholder="مثلاً سوپ جو با نون تست">
+        </div>
+
+        <p class="hint hint--inline" id="food-hint">می‌تونی چندتا رو با هم انتخاب کنی</p>
+      </div>
+
+      <footer class="screen__foot">
+        <button class="btn btn--primary" data-go="4" id="go-food" disabled>مرحله بعد <svg class="i" viewBox="0 0 24 24"><use href="#i-arrow-l"></use></svg></button>
+        <p class="hint" id="food-block">حداقل یه گزینه انتخاب کن</p>
+      </footer>
+    </section>
+
+    <!-- ── 4 · companions ── -->
+    <section class="screen" data-screen="4" aria-labelledby="t4" hidden>
+      <div class="topbar">
+        <span class="topbar__spacer"></span>
+        <ol class="progress" aria-hidden="true"></ol>
+        <button class="icon-btn" data-back aria-label="بازگشت به مرحله قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-l"></use></svg></button>
+      </div>
+
+      <div class="screen__body">
+        <div class="screen__head">
+          <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-users"></use></svg>
+          <h2 class="title" id="t4">با کیا بریم؟ <span class="emo">❤️</span></h2>
+          <p class="lead">یه بار برای خودمون، یه بار برای همه؟</p>
+        </div>
+
+        <div class="duo" role="radiogroup" aria-label="انتخاب همراهان">
+          <button class="choice" type="button" role="radio" aria-checked="false" data-value="duo">
+            <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-heart"></use></svg>
+            <span class="choice__title">فقط دوتایی</span>
+            <span class="choice__desc">من و تو</span>
+            <span class="choice__mark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><use href="#i-check"></use></svg></span>
+          </button>
+          <button class="choice" type="button" role="radio" aria-checked="false" data-value="group">
+            <svg class="i i--lg tint" viewBox="0 0 24 24"><use href="#i-users"></use></svg>
+            <span class="choice__title">با چند نفر دیگه</span>
+            <span class="choice__desc">چه کسی/کسانی رو دعوت کنیم؟</span>
+            <span class="choice__mark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><use href="#i-check"></use></svg></span>
+          </button>
+        </div>
+
+        <div class="field" id="guests-field" hidden>
+          <label class="field__label" for="guests">اسمشون رو بنویس...</label>
+          <input class="field__input" id="guests" type="text" maxlength="80" placeholder="مثلاً علی، سارا">
+          <p class="field__help">با ویرگول جدا کن</p>
+        </div>
+      </div>
+
+      <footer class="screen__foot">
+        <button class="btn btn--primary" data-go="5" id="go-guests" disabled>مرحله بعد <svg class="i" viewBox="0 0 24 24"><use href="#i-arrow-l"></use></svg></button>
+        <p class="hint" id="guests-block">اول انتخاب کن با کیا بریم</p>
+      </footer>
+    </section>
+
+    <!-- ── 5 · result ── -->
+    <section class="screen screen--result" data-screen="5" aria-labelledby="t5" hidden>
+      <div class="topbar">
+        <span class="topbar__spacer"></span>
+        <ol class="progress progress--on-dark" aria-hidden="true"></ol>
+        <button class="icon-btn icon-btn--on-dark" data-back aria-label="بازگشت به مرحله قبل"><svg class="i" viewBox="0 0 24 24"><use href="#i-chev-l"></use></svg></button>
+      </div>
+
+      <div class="screen__body center">
+        <div class="seal"><svg class="i" viewBox="0 0 24 24"><use href="#i-heart-fill"></use></svg></div>
+        <h2 class="title title--hero" id="t5">خب... پس قرارمون مشخص شد<span class="emo">❤️</span></h2>
+
+        <article class="ticket">
+          <div class="ticket__row">
+            <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-pin"></use></svg> کجا؟</div>
+            <div class="ticket__value"><strong id="r-place">کافه فلان</strong><span id="r-addr">خیابان ولیعصر، تهران</span></div>
+          </div>
+          <div class="ticket__row">
+            <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-clock"></use></svg> چه ساعتی؟</div>
+            <div class="ticket__value"><strong id="r-time">۱۹:۳۰</strong><span id="r-period">عصر</span></div>
+          </div>
+          <div class="ticket__row">
+            <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-fork"></use></svg> چی بخوریم؟</div>
+            <div class="ticket__value"><strong id="r-food">پیتزا</strong><span id="r-food-extra" hidden></span></div>
+          </div>
+          <div class="ticket__row">
+            <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-users"></use></svg> با کیا؟</div>
+            <div class="ticket__value"><strong id="r-guests">فقط خودمون دوتا</strong></div>
+          </div>
+        </article>
+
+        <p class="signoff">پس میبینمت<span class="emo"> ❤️</span></p>
+        <div class="send-row" id="telegram-row" hidden>
+          <button class="btn btn--ghost" id="telegram-send">ارسال به تلگرام</button>
+          <p class="hint" id="telegram-status"></p>
+        </div>
+        <button class="btn btn--ghost" id="restart">شروع دوباره</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ══ icon + ornament sprite ══ -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="i-heart"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 8.5 2.6c0 5.8-8.5 11.3-8.5 11.3Z"/></g>
+    <g id="i-heart-fill"><path d="M12 20.8S3 15 3 8.9A5.1 5.1 0 0 1 12 6.1a5.1 5.1 0 0 1 9 2.8c0 6.1-9 11.9-9 11.9Z"/></g>
+    <g id="i-arrow-l"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></g>
+    <g id="i-chev-l"><path d="M15 5l-7 7 7 7"/></g>
+    <g id="i-chev-u"><path d="M6 15l6-6 6 6"/></g>
+    <g id="i-chev-d"><path d="M6 9l6 6 6-6"/></g>
+    <g id="i-pin"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></g>
+    <g id="i-clock"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.1 2"/></g>
+    <g id="i-users"><circle cx="9" cy="8.4" r="3.2"/><path d="M2.8 19.4a6.3 6.3 0 0 1 12.4 0"/><path d="M16.2 5.6a3.2 3.2 0 0 1 0 5.8M17.6 14.2a6.3 6.3 0 0 1 3.6 5.2"/></g>
+    <g id="i-fork"><path d="M7 3v7a2.4 2.4 0 0 0 2.4 2.4h.2V21"/><path d="M7 3v4.6M9.6 3v4.6"/><path d="M17 3c-1.5 1-2.4 3-2.4 5.2 0 1.6.9 2.6 2.4 2.9V21"/></g>
+    <g id="i-search"><circle cx="11" cy="11" r="6.6"/><path d="m16 16 4.2 4.2"/></g>
+    <g id="i-x"><path d="M6 6l12 12M18 6 6 18"/></g>
+    <g id="i-plus"><path d="M12 5.5v13M5.5 12h13"/></g>
+    <g id="i-minus"><path d="M5.5 12h13"/></g>
+    <g id="i-check"><path d="m5 12.8 4.6 4.6L19 6.8"/></g>
+    <g id="i-hand"><path d="M9 11.2V5.6a1.7 1.7 0 1 1 3.4 0v5"/><path d="M12.4 10.6V8.9a1.7 1.7 0 1 1 3.4 0v1.9"/><path d="M15.8 10.9v-.6a1.7 1.7 0 1 1 3.4 0v3.9a6 6 0 0 1-6 6h-.9a5 5 0 0 1-3.9-1.9L5 14.2a1.7 1.7 0 0 1 2.6-2.1L9 13.3"/></g>
+    <g id="i-moon"><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z"/></g>
+    <g id="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/></g>
+    <g id="i-spark"><path d="M12 3.2 13.9 9l5.8 1.9-5.8 1.9L12 18.6l-1.9-5.8L4.3 11 10.1 9Z"/></g>
+  </defs>
+
+  <g id="art-flourish" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+    <path d="M4 22c26-3 44-10 60-14"/>
+    <path d="M216 22c-26-3-44-10-60-14"/>
+    <path d="M112 10c-3.6 0-6.4 2.4-6.4 5.6 0 3.6 3.4 6 6.4 9.4 3-3.4 6.4-5.8 6.4-9.4 0-3.2-2.8-5.6-6.4-5.6Z"/>
+  </g>
+
+  <g id="art-sprig" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
+    <path d="M6 196c14-30 34-54 62-70 22-13 42-19 62-24"/>
+    <path d="M32 152c-8-6-18-8-26-6 4 8 12 14 22 14"/>
+    <path d="M58 122c-9-5-19-6-27-3 5 8 14 12 24 11"/>
+    <path d="M86 100c-8-6-18-8-26-5 4 8 13 13 23 12"/>
+    <path d="M116 82c-7-7-17-10-25-7 3 9 11 14 21 14"/>
+    <path d="M144 72c-6-8-15-12-23-10 2 9 9 15 19 16"/>
+    <g stroke-width="1">
+      <path d="M46 176c-3-5-2-11 2-14 5 3 6 10 2 14Z"/>
+      <path d="M72 140c-3-5-2-11 2-14 5 3 6 10 2 14Z"/>
+      <path d="M100 116c-3-5-2-11 2-14 5 3 6 10 2 14Z"/>
+      <path d="M130 92c-3-5-2-11 2-14 5 3 6 10 2 14Z"/>
+    </g>
+    <g fill="currentColor" stroke="none">
+      <circle cx="30" cy="146" r="2.1"/><circle cx="56" cy="116" r="1.8"/><circle cx="84" cy="94" r="2.1"/>
+      <circle cx="114" cy="76" r="1.8"/><circle cx="142" cy="66" r="2"/><circle cx="44" cy="170" r="1.6"/>
+      <circle cx="98" cy="110" r="1.5"/><circle cx="128" cy="86" r="1.6"/>
+    </g>
+  </g>
+
+  <g id="art-skyline" fill="#3A1E2A" stroke="none">
+    <!-- far blocks -->
+    <path d="M0 150v-34h20v34zM20 150v-48h8v48zM28 150v-30h22v30zM50 150v-42h10v42zM60 150v-26h18v26z"/>
+    <path d="M78 150v-52h7v52zM85 150v-34h20v34zM105 150v-44h9v44zM114 150v-28h16v28z"/>
+    <path d="M150 150v-38h18v38zM168 150v-50h8v50zM176 150v-30h20v30z"/>
+    <path d="M300 150v-36h16v36zM316 150v-48h8v48zM324 150v-28h18v28zM342 150v-42h10v42z"/>
+    <path d="M352 150v-30h20v30zM372 150v-44h9v44zM381 150v-26h19v26z"/>
+    <!-- mid blocks with stepped rooflines -->
+    <path d="M130 150V96h6V86h6v10h6v-8h5v8h5v54z"/>
+    <path d="M200 150v-46h5v-9h6v9h6v-7h4v7h5v46z"/>
+    <path d="M258 150v-44h5v-8h6v8h6v-6h4v6h5v44z"/>
+    <!-- tall tapered tower -->
+    <path d="M226 150V62l4-14h8l4 14v88z"/>
+    <rect x="232" y="34" width="2" height="16"/>
+    <circle cx="233" cy="32" r="2.4"/>
+    <!-- ground line -->
+    <rect x="0" y="146" width="400" height="4"/>
+    <!-- lit windows -->
+    <g fill="#8A4E5E" opacity=".75">
+      <rect x="6" y="120" width="4" height="5"/><rect x="34" y="126" width="4" height="5"/><rect x="90" y="122" width="4" height="5"/>
+      <rect x="118" y="128" width="4" height="5"/><rect x="155" y="118" width="4" height="5"/><rect x="181" y="126" width="4" height="5"/>
+      <rect x="206" y="112" width="4" height="5"/><rect x="263" y="114" width="4" height="5"/><rect x="304" y="120" width="4" height="5"/>
+      <rect x="328" y="110" width="4" height="5"/><rect x="357" y="126" width="4" height="5"/><rect x="385" y="130" width="4" height="5"/>
+    </g>
+    <g fill="#C98A93" opacity=".55">
+      <rect x="16" y="112" width="3" height="4"/><rect x="104" y="116" width="3" height="4"/><rect x="176" y="116" width="3" height="4"/>
+      <rect x="216" y="98" width="3" height="4"/><rect x="278" y="120" width="3" height="4"/><rect x="340" y="116" width="3" height="4"/>
+    </g>
+  </g>
+</svg>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
