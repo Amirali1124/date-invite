@@ -760,6 +760,7 @@ function sendToTelegram(){
       key: inviteKey,
       place:  state.place?.name || '',
       address: state.place?.address || '',
+      region: state.place?.region || '',
       time:   fa(String(state.time.h).padStart(2, '0')) + ':' + fa(String(state.time.m).padStart(2, '0')),
       period: periodEl.dataset.period || '',
       foods,

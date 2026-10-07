@@ -159,7 +159,7 @@ async function poll(){
 /* ── ساخت متن نتیجه ───────────────────────────────────────── */
 function buildMessage(d, who){
   const rows = [
-    ['📍 کجا؟',            d.place   ? `${d.place}\n${d.address || ''}`.trim() : null],
+    ['📍 کجا؟',            d.place   ? [d.place, d.address, d.region].filter(Boolean).join('\n') : null],
     ['🕐 چه ساعتی؟',       d.time    ? `${d.time}${d.period ? '\n' + d.period : ''}` : null],
     ['🍕 چی بخوریم؟',      d.foods?.length ? d.foods.join('، ') : null],
     ['👥 با کیا؟',         d.guests  || null]
@@ -183,7 +183,7 @@ function buildMessage(d, who){
 function bannedIn(d){
   const foods = Array.isArray(d.foods) ? d.foods : []
   const parts = [String(d.guests || '')].flatMap(s => s.split(/[,،؛;·\s]+/))
-  const whole = [d.place, d.address, ...foods].filter(v => typeof v === 'string')
+  const whole = [d.place, d.address, d.region, ...foods].filter(v => typeof v === 'string')
   return BLOCKED_NAMES.some(b => [...parts, ...whole].some(p => norm(p) === norm(b)))
 }
 
