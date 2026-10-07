@@ -91,6 +91,7 @@
           <div class="venue__meta">
             <h3 class="venue__name" id="venue-name">کافه فلان</h3>
             <p class="venue__addr" id="venue-addr">خیابان ولیعصر، تهران</p>
+            <p class="venue__region" id="venue-region" hidden></p>
           </div>
           <svg class="i tint venue__pin" viewBox="0 0 24 24"><use href="#i-pin"></use></svg>
         </article>
@@ -229,7 +230,7 @@
         <article class="ticket">
           <div class="ticket__row">
             <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-pin"></use></svg> کجا؟</div>
-            <div class="ticket__value"><strong id="r-place">کافه فلان</strong><span id="r-addr">خیابان ولیعصر، تهران</span></div>
+            <div class="ticket__value"><strong id="r-place">کافه فلان</strong><span id="r-addr">خیابان ولیعصر، تهران</span><span id="r-region" hidden></span></div>
           </div>
           <div class="ticket__row">
             <div class="ticket__label"><svg class="i tint" viewBox="0 0 24 24"><use href="#i-clock"></use></svg> چه ساعتی؟</div>
@@ -257,6 +258,16 @@
   </main>
 </div>
 
+<!-- ══ بن: کسی که اسمش در فهرست بن است، نه می‌تواند پیش برود نه نتیجه‌اش برود ══ -->
+<div class="ban" id="ban" hidden role="alertdialog" aria-labelledby="ban-title" aria-modal="true">
+  <div class="ban__card">
+    <svg class="ban__ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ban"></use></svg>
+    <h3 class="ban__title" id="ban-title">دسترسی نداری</h3>
+    <p class="ban__text">این شخص بن شده و اجازهٔ استفاده از این دعوت‌نامه را ندارد.</p>
+    <button class="btn btn--ghost" id="ban-close" type="button">باشه</button>
+  </div>
+</div>
+
 <!-- ══ icon + ornament sprite ══ -->
 <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -275,6 +286,7 @@
     <g id="i-plus"><path d="M12 5.5v13M5.5 12h13"/></g>
     <g id="i-minus"><path d="M5.5 12h13"/></g>
     <g id="i-check"><path d="m5 12.8 4.6 4.6L19 6.8"/></g>
+  <g id="i-ban"><circle cx="12" cy="12" r="8.6"/><path d="m6.2 6.2 11.6 11.6"/></g>
     <g id="i-hand"><path d="M9 11.2V5.6a1.7 1.7 0 1 1 3.4 0v5"/><path d="M12.4 10.6V8.9a1.7 1.7 0 1 1 3.4 0v1.9"/><path d="M15.8 10.9v-.6a1.7 1.7 0 1 1 3.4 0v3.9a6 6 0 0 1-6 6h-.9a5 5 0 0 1-3.9-1.9L5 14.2a1.7 1.7 0 0 1 2.6-2.1L9 13.3"/></g>
     <g id="i-moon"><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4 8.4 8.4 0 1 0 20 14.2Z"/></g>
     <g id="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/></g>

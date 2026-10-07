@@ -15,12 +15,60 @@ const HEART_SVG = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/
 
 const state = {
   step: 0,
-  place: null,      // { name, address, lat, lng }
+  place: null,      // { name, address, region, lat, lng }
   time:  { h: 19, m: 30 },
   foods: new Set(),
   otherFood: '',
   guests: { mode: null, names: '' }
 };
+
+/* ───────────────────────── بن ─────────────────────────
+   این فهرست فقط برای بازخورد فوری داخل مرورگر است؛ نسخهٔ اصلی و
+   غیرقابل‌دورزدنش BLOCKED_NAMES در سرور است. */
+
+const BANNED = ['غزل'];
+
+function norm(s){
+  return String(s ?? '')
+    .replace(/[ً-ْٰ‌‏‎ـ]/g, '')
+    .replace(/[يى]/g, 'ی').replace(/ك/g, 'ک')
+    .replace(/[أإآ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ی')
+    .replace(/[ۀة]/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/* «علی، سارا» فهرست اسامی است، پس تکه‌تکه سنجیده می‌شود؛ ولی جستجوی
+   آزاد («کافه غزل») نباید بن بدهد، پس آن‌جا تطابق کاملِ عبارت ملاک است. */
+const bannedWord  = (text) => BANNED.find(b => norm(text).split(/[,،؛;·\s]+/).some(p => p === norm(b)));
+const bannedPhrase = (text) => BANNED.find(b => norm(text) === norm(b));
+
+const banEl = $('#ban');
+let banned = false;
+
+function showBan(){
+  banned = true;
+  banEl.hidden = false;
+  $('#ban-close').focus({ preventScroll: true });
+}
+function hideBan(){
+  banEl.hidden = true;
+  banned = false;
+}
+$('#ban-close').addEventListener('click', hideBan);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !banEl.hidden) hideBan();
+});
+
+/* فیلدی که اسم بن در آن تایپ شده: پاپ‌آپ می‌آورد و جلوی ارسال را می‌گیرد */
+function guard(el, test = bannedWord){
+  if (!test(el.value)) return false;
+  showBan();
+  el.value = '';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+}
 
 /* ───────────────────────── progress ───────────────────────── */
 
@@ -172,6 +220,9 @@ function setPlace(p, opts = {}){
 
   $('#venue-name').textContent = p.name;
   $('#venue-addr').textContent = p.address || 'آدرس مشخص نشده';
+  const reg = $('#venue-region');
+  reg.textContent = p.region || '';
+  reg.hidden = !p.region;
   venue.hidden = false;
   venue.style.animation = 'none'; void venue.offsetWidth; venue.style.animation = '';
   pickTip.hidden = true;
@@ -186,6 +237,17 @@ map.on('dragend', () => {
   const c = map.getCenter();
   reverseGeocode(c.lat, c.lng);
 });
+
+/* Nominatim مکان را به اجزای مختلف می‌شکند؛ شهر و استان جدا از
+   محلهٔ محلی‌اند، پس جدا نگه داشته می‌شوند تا در خطی جدا نشان داده شوند. */
+const uniq = (...xs) => [...new Set(xs.filter(Boolean))];
+
+function regionOf(a){
+  const city  = a.city || a.town || a.village || a.municipality || a.county || ''
+  const state = a.state || a.region || ''
+  if (city && state && norm(city) === norm(state)) return state
+  return uniq(city, state).join('، ')
+}
 
 /* reverse geocode — Nominatim */
 const revCache = new Map();
@@ -205,14 +267,15 @@ function reverseGeocode(lat, lng){
       const bits  = [road && `${road}${no ? '، ' + no : ''}`, place].filter(Boolean);
       const name  = j.name || place || 'مکان انتخاب‌شده';
       const addr  = bits.join('، ') || 'آدرس مشخص نشده';
-      revCache.set(key, { name, addr });
-      applyReverse(lat, lng, { name, addr });
+      const r = { name, addr, region: regionOf(a) };
+      revCache.set(key, r);
+      applyReverse(lat, lng, r);
     }catch{ /* offline — keep the pin, no card */ }
   }, 420);
 }
 function applyReverse(lat, lng, r){
   if (state.place && Math.abs(state.place.lat - lat) < 1e-4 && Math.abs(state.place.lng - lng) < 1e-4) return;
-  setPlace({ name: r.name, address: r.addr, lat, lng }, { pan: false });
+  setPlace({ name: r.name, address: r.addr, region: r.region, lat, lng }, { pan: false });
 }
 
 /* ── forward search ── */
@@ -221,6 +284,12 @@ let searchTimer = null, abort = null;
 input.addEventListener('input', () => {
   clearBtn.hidden = !input.value;
   clearTimeout(searchTimer);
+  /* جستجوی خودِ اسم بن پیش از رفتن به سرور متوقف می‌شود؛ ولی «کافه غزل»
+     یک جستجوی عادی است و نباید بن بدهد */
+  if (guard(input, bannedPhrase)){
+    hideResults();
+    return;
+  }
   const q = input.value.trim();
   if (q.length < 2){ hideResults(); return; }
   searchTimer = setTimeout(() => search(q), 480);
@@ -238,7 +307,7 @@ clearBtn.addEventListener('click', () => {
 async function search(q){
   abort?.abort();
   abort = new AbortController();
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=fa&limit=6&q=${encodeURIComponent(q)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=fa&addressdetails=1&limit=6&q=${encodeURIComponent(q)}`;
   try{
     const res = await fetch(url, { signal: abort.signal, headers: { Accept: 'application/json' } });
     const rows = await res.json();
@@ -259,6 +328,8 @@ function renderResults(rows, q){
   showResults(rows.map(r => ({
     name: r.display_name.split(',')[0].trim(),
     addr: r.display_name.split(',').slice(1, 4).join('،').trim(),
+    /* نام جستجو فقط نام مکان است؛ استان/شهر از همان رشته بیرون کشیده می‌شود */
+    region: regionOf(r.address || {}),
     lat: +r.lat, lng: +r.lon
   })));
 }
@@ -271,12 +342,15 @@ function showResults(items){
     const b = document.createElement('button');
     b.type = 'button';
     b.innerHTML = `<svg class="i r-ico" viewBox="0 0 24 24"><use href="#i-pin"></use></svg>
-      <span><span></span><span class="r-sub"></span></span>`;
+      <span><span></span><span class="r-sub"></span><span class="r-region"></span></span>`;
     b.querySelector('span span').textContent = it.name;
     b.querySelector('.r-sub').textContent = it.addr;
+    const reg = b.querySelector('.r-region');
+    reg.textContent = it.region || '';
+    reg.hidden = !it.region;
     if (it.lat != null){
       b.addEventListener('click', () => {
-        setPlace({ name: it.name, address: it.addr, lat: it.lat, lng: it.lng });
+        setPlace({ name: it.name, address: it.addr, region: it.region, lat: it.lat, lng: it.lng });
         map.setView([it.lat, it.lng], 16);
         input.value = it.name;
         clearBtn.hidden = false;
@@ -573,7 +647,11 @@ function paintFood(){
     : 'می‌تونی چندتا رو با هم انتخاب کنی';
 }
 
-otherInput.addEventListener('input', () => { state.otherFood = otherInput.value.trim(); paintFood(); });
+otherInput.addEventListener('input', () => {
+  if (guard(otherInput)) return;
+  state.otherFood = otherInput.value.trim();
+  paintFood();
+});
 
 /* ══════════════════════════════════════════════════════════
    4 · companions
@@ -598,7 +676,11 @@ $$('.choice').forEach(c => c.addEventListener('click', () => {
   paintGuests();
 }));
 
-guestsInput.addEventListener('input', () => { state.guests.names = guestsInput.value.trim(); paintGuests(); });
+guestsInput.addEventListener('input', () => {
+  if (guard(guestsInput)) return;
+  state.guests.names = guestsInput.value.trim();
+  paintGuests();
+});
 
 function paintGuests(){
   const g = state.guests;
@@ -625,6 +707,9 @@ function paintResult(){
   const p = state.place;
   $('#r-place').textContent = p?.name || 'کافه فلان';
   $('#r-addr').textContent  = p?.address || 'خیابان ولیعصر، تهران';
+  const rreg = $('#r-region');
+  rreg.textContent = p?.region || '';
+  rreg.hidden = !p?.region;
 
   $('#r-time').textContent = fa(String(state.time.h).padStart(2, '0')) + ':' + fa(String(state.time.m).padStart(2, '0'));
   $('#r-period').textContent = periodEl.dataset.period || 'عصر';
@@ -692,6 +777,8 @@ function sendToTelegram(){
         status.textContent = 'فرستاده شد به تلگرام ✅';
         btn.disabled = true;
         btn.textContent = 'ارسال شد';
+      }else if (j && j.banned){
+        showBan();
       }else{
         /* اگر این صفحه از Pages باز شده باشد، این‌جا لو می‌دهیم */
         const onPages = /github\.io/i.test(location.host)
@@ -720,6 +807,7 @@ $('#telegram-send').addEventListener('click', () => {
 });
 
 $('#restart').addEventListener('click', () => {
+  hideBan();
   state.place = null;
   state.time = { h: 19, m: 30 };
   state.foods.clear();

@@ -16,8 +16,29 @@ const BOT_NAME = process.env.BOT_NAME || ''
 const OWNER_CHAT = process.env.OWNER_CHAT_ID || ''   // نتیجه همیشه به این چت می‌رود
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || '').replace(/\/+$/, '')
 
+/* اسامی بن‌شده — با کاما جدا، مثلاً: BLOCKED_NAMES=غزل,زهرا
+   چک هم روی نام و هم روی یوزرنیم انجام می‌شود (بدون @). */
+const BLOCKED_NAMES = (process.env.BLOCKED_NAMES || '')
+  .split(',').map(s => norm(s)).filter(Boolean)
+
 const API = TOKEN ? `https://api.telegram.org/bot${TOKEN}` : ''
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+/* یکسان‌سازی اسم فارسی تا «غزل»، «غَزل»، «غـزل» و «ي غزل» یکی دیده شوند:
+   ی/ک عربی، نیم‌فاصله، اعراب و کشیده حذف می‌شوند و فاصله‌ها جمع. */
+function norm(s){
+  return String(s ?? '')
+    .replace(/[ً-ْٰ‌‏‎ـ]/g, '')   // اعراب، نیم‌فاصله، کشیده، جهت‌دهی
+    .replace(/[يى]/g, 'ی')            // ی/ى عربی → ی
+    .replace(/ك/g, 'ک')                     // ك عربی → ک
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ؤ/g, 'و').replace(/ئ/g, 'ی')
+    .replace(/[ۀة]/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+function isBlocked(s){ return BLOCKED_NAMES.includes(norm(s)) }
 
 /* ── نشست‌ها: کلید deep-link → chat_id ──────────────────────
    هر کاربری که /start را می‌زند یک کلید یکتا می‌گیرد؛ نتیجهٔ فرم
@@ -30,18 +51,19 @@ function newKey(){
   crypto.getRandomValues(a)
   return Buffer.from(a).toString('base64url')
 }
-function putSession(key, chatId){
-  sessions.set(key, { chatId, ts: Date.now() })
+function putSession(key, chatId, who = {}){
+  sessions.set(key, { chatId, who, ts: Date.now() })
   if (sessions.size > 5000){
     for (const [k, v] of sessions) if (Date.now() - v.ts > SESSION_TTL) sessions.delete(k)
   }
 }
-function takeChat(key){
+function getSession(key){
   const s = sessions.get(key)
   if (!s) return null
   if (Date.now() - s.ts > SESSION_TTL){ sessions.delete(key); return null }
-  return s.chatId
+  return s
 }
+function takeChat(key){ return getSession(key)?.chatId ?? null }
 
 /* ── محدودسازی نرخ: جلوگیری از اسپم شدن ربات ─────────────── */
 const hits = new Map()
@@ -73,6 +95,10 @@ const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
    اشتباه تنظیم شده باشد (مثلاً Pages که سرور ندارد)، دامنهٔ خودِ این سرور
    استفاده می‌شود تا دکمه بی‌صدا شکست نخورد. */
 let selfOrigin = ''
+
+/* پیام رد برای کسانی که بن شده‌اند — عمداً بدون جزئیات، تا معلوم نشود
+   چه کسی لیست است */
+const BLOCKED_MSG = 'دسترسی شما به این دعوت‌نامه فعال نیست.'
 function inviteLink(key){
   const base = (SITE_URL && !/github\.io/i.test(SITE_URL)) ? SITE_URL : selfOrigin
   const url = base ? `${base}/?k=${key}` : '—'
@@ -106,8 +132,18 @@ async function poll(){
         const msg = u.message || u.edited_message
         const text = msg?.text || ''
         if (msg?.chat?.type === 'private' && text.startsWith('/start')){
+          const who = {
+            name:  [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ').trim(),
+            user:  msg.from?.username || '',
+            id:    msg.from?.id ?? null
+          }
+          /* کاربر بن‌شده لینک دعوت نمی‌گیرد؛ فقط پیام رد شدن. */
+          if (isBlocked(who.name) || isBlocked(who.user)){
+            await tg('sendMessage', { chat_id: msg.chat.id, text: BLOCKED_MSG })
+            continue
+          }
           const key = text.split(/\s+/)[1] || newKey()
-          putSession(key, msg.chat.id)
+          putSession(key, msg.chat.id, who)
           await tg('sendMessage', { chat_id: msg.chat.id, text: inviteLink(key) })
         }
       }
@@ -119,7 +155,7 @@ async function poll(){
 }
 
 /* ── ساخت متن نتیجه ───────────────────────────────────────── */
-function buildMessage(d){
+function buildMessage(d, who){
   const rows = [
     ['📍 کجا؟',            d.place   ? `${d.place}\n${d.address || ''}`.trim() : null],
     ['🕐 چه ساعتی؟',       d.time    ? `${d.time}${d.period ? '\n' + d.period : ''}` : null],
@@ -127,12 +163,26 @@ function buildMessage(d){
     ['👥 با کیا؟',         d.guests  || null]
   ].filter(([, v]) => v)
 
+  const from = who?.name
+    ? `از ${esc(who.name)}${who.user ? ' (@' + esc(who.user) + ')' : ''}`
+    : null
+
   return [
     '💌 پس قرارمون مشخص شد!',
+    from || '',
     '',
     ...rows.flatMap(([k, v]) => [`<b>${k}</b>`, esc(v), '']),
     'پس میبینمت ❤️'
-  ].join('\n')
+  ].filter(l => l !== '').join('\n')
+}
+
+/* فیلدهای «فهرست اسامی» (همراهان) باید تکه‌تکه سنجیده شوند تا «علی، غزل»
+   گرفته شود؛ بقیه با تطابق کامل تا «کافه غزل» بن نشود. */
+function bannedIn(d){
+  const foods = Array.isArray(d.foods) ? d.foods : []
+  const parts = [String(d.guests || '')].flatMap(s => s.split(/[,،؛;·\s]+/))
+  const whole = [d.place, d.address, ...foods].filter(v => typeof v === 'string')
+  return BLOCKED_NAMES.some(b => [...parts, ...whole].some(p => norm(p) === norm(b)))
 }
 
 /* ── سرور HTTP ────────────────────────────────────────────── */
@@ -179,13 +229,23 @@ const server = createServer(async (req, res) => {
       d = JSON.parse(raw)
     }catch{ return json(res, 400, { ok:false, error:'داده نامعتبر' }) }
 
-    const chatId = OWNER_CHAT || takeChat(String(d.key || ''))
+    const s     = getSession(String(d.key || ''))
+    const chatId = OWNER_CHAT || s?.chatId
     if (!chatId) return json(res, 404, { ok:false, error:'نشست منقضی شده — دوباره از ربات لینک بگیر' })
+
+    /* بلاک را سمت سرور می‌گیریم تا با تغییر مرورگر یا رفرش دور زده نشود.
+       هم روی هویت فرستنده در ربات، هم روی متن خودِ فرم (اسم همراهان و…). */
+    if (isBlocked(s?.who?.name) || isBlocked(s?.who?.user)){
+      return json(res, 403, { ok:false, banned:true, error:'دسترسی شما به این دعوت‌نامه فعال نیست.' })
+    }
+    if (bannedIn(d)){
+      return json(res, 403, { ok:false, banned:true, error:'دسترسی شما به این دعوت‌نامه فعال نیست.' })
+    }
 
     const foods = Array.isArray(d.foods) ? d.foods.filter(f => typeof f === 'string').slice(0, 8) : []
     const sent  = await tg('sendMessage', {
       chat_id: chatId,
-      text: buildMessage({ ...d, foods }),
+      text: buildMessage({ ...d, foods }, s?.who),
       parse_mode: 'HTML'
     })
     return json(res, sent.ok ? 200 : 502, { ok: !!sent.ok, error: sent.description })
@@ -257,6 +317,7 @@ server.listen(PORT, () => {
   if (!TOKEN)       console.warn('⚠ TELEGRAM_BOT_TOKEN تنظیم نشده — ارسال پیام کار نمی‌کند')
   if (!SITE_URL)    console.warn('⚠ SITE_URL تنظیم نشده — لینک داخل ربات خالی می‌ماند')
   if (!BOT_NAME)    console.warn('⚠ BOT_NAME تنظیم نشده')
+  if (!BLOCKED_NAMES.length) console.warn('⚠ BLOCKED_NAMES تنظیم نشده — لیست بن خالی است')
   poll()
 })
 
