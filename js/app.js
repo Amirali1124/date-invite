@@ -748,34 +748,45 @@ $('#restart').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,textarea')) return;
   if (e.key === 'ArrowRight' && state.step > 0) go(state.step - 1, 'back');
-  if (e.key === 'ArrowLeft'  && state.step < 5 && canForward()) go(state.step + 1);
+  if (e.key === 'ArrowLeft'  && state.step < 5 && stepAnswered()) go(state.step + 1);
 });
+
+/* آیا سؤال مرحلهٔ جاری پاسخ داده شده؟ — هم دکمه‌ها، هم کشیدن، هم کیبورد
+   از این تابع واحد استفاده می‌کنند تا قوانینشان واگرا نشود */
+function stepAnswered(){
+  if (state.step === 0) return true;                   // صفحهٔ شروع
+  if (state.step === 1) return !goPlace.disabled;      // مکان
+  if (state.step === 2) return true;                   // ساعت همیشه مقداری دارد
+  if (state.step === 3) return !goFood.disabled;       // غذا
+  if (state.step === 4) return !goGuests.disabled;     // همراه
+  return false;                                        // نتیجه
+}
 
 /* ── swipe between questions (horizontal, on the body only) ── */
 (() => {
   let x0 = null, y0 = null, locked = false;
+
+  /* جاهایی که کشیدن افقی معنای دیگری دارد و نباید صفحه را عوض کند:
+     نقشه (پن ماه می‌چرخد)، چرخ‌های ساعت، ورودی متن و نتایج جستجو */
+  const NO_SWIPE = '.leaflet-container, .wheel, input, textarea, .results';
+
   document.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) return;
+    if (e.target.closest && e.target.closest(NO_SWIPE)){ x0 = null; return }
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; locked = false;
   }, { passive: true });
+
   document.addEventListener('touchend', e => {
     if (x0 == null || locked) return;
     const dx = e.changedTouches[0].clientX - x0;
     const dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 68 && Math.abs(dx) > Math.abs(dy) * 1.8){
       locked = true;
-      if (dx > 0 && state.step > 0) go(state.step - 1, 'back');        // swipe right = back (RTL)
-      else if (dx < 0 && canForward()) go(state.step + 1);             // swipe left = forward
+      if (dx > 0 && state.step > 0) go(state.step - 1, 'back');   // کشیدن به راست = عقب (RTL)
+      else if (dx < 0 && state.step < 5 && stepAnswered()) go(state.step + 1);
     }
     x0 = null;
   }, { passive: true });
-
-  function canForward(){
-    if (state.step === 1) return !goPlace.disabled;
-    if (state.step === 3) return !goFood.disabled;
-    if (state.step === 4) return !goGuests.disabled;
-    return state.step < 5;
-  }
 })();
 
 /* ── boot ── */
