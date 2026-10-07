@@ -17,9 +17,11 @@ const OWNER_CHAT = process.env.OWNER_CHAT_ID || ''   // نتیجه همیشه ب
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || '').replace(/\/+$/, '')
 
 /* اسامی بن‌شده — با کاما جدا، مثلاً: BLOCKED_NAMES=غزل,زهرا
-   چک هم روی نام و هم روی یوزرنیم انجام می‌شود (بدون @). */
+   چک هم روی نام و هم روی یوزرنیم انجام می‌شود (بدون @).
+   کوتیشن و فاصلهٔ اضافه هم پاک می‌شوند، چون در پنل Render آسان است
+   که همراه مقدار تایپ شوند و آن‌وقت نام هرگز تطبیق نمی‌خورد. */
 const BLOCKED_NAMES = (process.env.BLOCKED_NAMES || '')
-  .split(',').map(s => norm(s)).filter(Boolean)
+  .split(',').map(s => norm(s.replace(/^["']|["']$/g, ''))).filter(Boolean)
 
 const API = TOKEN ? `https://api.telegram.org/bot${TOKEN}` : ''
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
@@ -212,11 +214,13 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'OPTIONS'){ res.writeHead(204, cors()); return res.end() }
 
-  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را */
+  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را.
+   rawLength برای دیدن کاراکترهای اضافه مثل کوتیشن یا فاصلهٔ آخر است. */
   if (path === '/api/health'){
     return json(res, 200, {
       ok: true, telegram: !!TOKEN, sessions: sessions.size,
-      blocked: BLOCKED_NAMES.length
+      blocked: BLOCKED_NAMES.length,
+      rawLength: (process.env.BLOCKED_NAMES || '').length
     })
   }
 
