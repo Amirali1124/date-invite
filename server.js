@@ -214,13 +214,11 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'OPTIONS'){ res.writeHead(204, cors()); return res.end() }
 
-  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را.
-   rawLength برای دیدن کاراکترهای اضافه مثل کوتیشن یا فاصلهٔ آخر است. */
+  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را */
   if (path === '/api/health'){
     return json(res, 200, {
       ok: true, telegram: !!TOKEN, sessions: sessions.size,
-      blocked: BLOCKED_NAMES.length,
-      rawLength: (process.env.BLOCKED_NAMES || '').length
+      blocked: BLOCKED_NAMES.length
     })
   }
 
