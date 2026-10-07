@@ -69,8 +69,13 @@ async function tg(method, body){
 
 const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
+/* لینک دعوت باید همیشه به جایی برود که /api/result دارد. اگر SITE_URL
+   اشتباه تنظیم شده باشد (مثلاً Pages که سرور ندارد)، دامنهٔ خودِ این سرور
+   استفاده می‌شود تا دکمه بی‌صدا شکست نخورد. */
+let selfOrigin = ''
 function inviteLink(key){
-  const url = SITE_URL ? `${SITE_URL}/?k=${key}` : '—'
+  const base = (SITE_URL && !/github\.io/i.test(SITE_URL)) ? SITE_URL : selfOrigin
+  const url = base ? `${base}/?k=${key}` : '—'
   return [
     'یه قرار کوچیک با هم؟ ❤️',
     '',
@@ -148,6 +153,10 @@ const cors = () => ({
 })
 
 const server = createServer(async (req, res) => {
+  /* دامنهٔ واقعی سرور را یک‌بار نگه می‌داریم تا لینک دعوت خودکار درست شود */
+  if (!selfOrigin && req.headers.host && !/^(localhost|127\.0\.0\.1)/.test(req.headers.host)){
+    selfOrigin = `https://${req.headers.host}`
+  }
   const url  = new URL(req.url, 'http://x')
   const path = url.pathname
 

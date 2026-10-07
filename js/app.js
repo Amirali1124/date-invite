@@ -647,6 +647,10 @@ function paintResult(){
   if (inviteKey && !autoSent){
     showSendButton();
     sendToTelegram();
+  } else if (!inviteKey){
+    /* بدون کلید عمیق هیچ ارسالی انجام نمی‌شود — صریح بگو تا گیج نشود */
+    $('#telegram-row').hidden = false;
+    $('#telegram-status').textContent = 'برای فرستادن، از ربات لینک بگیر';
   }
 }
 
@@ -677,20 +681,31 @@ function sendToTelegram(){
       guests: state.guests.mode === 'group' ? state.guests.names : 'فقط خودمون دوتا'
     })
   })
-    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(async r => {
+      /* Pages و هر جایی که سرور نیست، HTML برمی‌گرداند نه JSON — همان خطاست */
+      let j = null
+      try { j = await r.json() } catch {}
+      return { ok: r.ok, j }
+    })
     .then(({ ok, j }) => {
-      if (ok && j.ok){
+      if (ok && j && j.ok){
         status.textContent = 'فرستاده شد به تلگرام ✅';
         btn.disabled = true;
         btn.textContent = 'ارسال شد';
       }else{
-        status.textContent = j.error || 'ارسال نشد — لطفاً دستی بفرست';
+        /* اگر این صفحه از Pages باز شده باشد، این‌جا لو می‌دهیم */
+        const onPages = /github\.io/i.test(location.host)
+        status.textContent = onPages
+          ? 'این نسخه بدون سرور است — از لینک ربات باز کن'
+          : (j && j.error) || 'ارسال نشد'
         btn.disabled = false;
+        console.warn('[telegram] send failed:', { status: ok ? 'body-error' : 'http', body: j })
       }
     })
-    .catch(() => {
+    .catch(e => {
       status.textContent = 'اتصال به سرور برقرار نشد';
       btn.disabled = false;
+      console.warn('[telegram] network error:', e)
     });
 }
 
