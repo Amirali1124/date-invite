@@ -544,11 +544,11 @@ body{
   width:100%;
 }
 .clock__col{ display:flex; flex-direction:column; align-items:center; gap:10px; }
-/* ساعت سمت راست (اول در ترتیب زمان)، دقیقه سمت چپ، دونقطه وسط —
+/* ساعت سمت چپ، دقیقه سمت راست، دونقطه وسط —
    با شمارهٔ فرزند، چون :first-of-type به عنصر clock__frame می‌افتد */
-.clock > .clock__col:nth-child(4){ order:1; }   /* دقیقه → چپ‌ترین */
+.clock > .clock__col:nth-child(2){ order:1; }   /* ساعت  → چپ‌ترین */
 .clock > .clock__colon{ order:2; }              /* دونقطه → وسط */
-.clock > .clock__col:nth-child(2){ order:3; }   /* ساعت  → راست‌ترین */
+.clock > .clock__col:nth-child(4){ order:3; }   /* دقیقه → راست‌ترین */
 .clock__step{
   display:grid; place-items:center;
   width:46px; height:46px;
