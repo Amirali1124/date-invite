@@ -614,7 +614,10 @@ function paintGuests(){
 
 /* ارسال به تلگرام — سایت کاملاً سمت کلاینت است، پس این تنها راهی است که
    نتیجه به ربات می‌رسد. اگر کلید عمیق نبود یا سرور نبود، سایت عادی کار می‌کند. */
-const API       = new URL('/api/result', location.origin).href;
+/* سایت روی GitHub Pages است و بک‌اند جای دیگری، پس آدرس API باید قابل
+   تنظیم باشد. data-api روی <body> می‌آید؛ اگر نبود، هم‌ریشه فرض می‌شود. */
+const API       = new URL(document.body.dataset.api || '/', location.origin);
+API.pathname = '/api/result';
 const inviteKey = new URLSearchParams(location.search).get('k') || '';
 let autoSent    = false;
 

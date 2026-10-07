@@ -14,6 +14,7 @@ const PORT     = Number(process.env.PORT || 3000)
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '')
 const BOT_NAME = process.env.BOT_NAME || ''
 const OWNER_CHAT = process.env.OWNER_CHAT_ID || ''   // نتیجه همیشه به این چت می‌رود
+const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN || '').replace(/\/+$/, '')
 
 const API = TOKEN ? `https://api.telegram.org/bot${TOKEN}` : ''
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
@@ -187,28 +188,41 @@ const server = createServer(async (req, res) => {
   rel = normalize(rel).replace(/^(\.\.[/\\])+/, '')
   const PUBLIC = ['/index.html', '/css', '/js', '/assets']
   if (!PUBLIC.some(p => rel === p || rel.startsWith(p + '/'))) {
-    return serveIndex(res)
+    return serveIndex(res, req.headers.host)
   }
 
   const file = join(ROOT, rel)
   if (!file.startsWith(ROOT)){ res.writeHead(403); return res.end('forbidden') }
 
   try{
-    const buf = await readFile(file)
+    let buf = await readFile(file)
+    const isHtml = rel === '/index.html'
+    /* آدرس API را داخل HTML تزریق کن تا فرم بداند بک‌اند کجاست */
+    if (isHtml) buf = injectApi(buf, req.headers.host)
     res.writeHead(200, {
       'content-type': MIME[extname(file).toLowerCase()] || 'application/octet-stream',
-      'cache-control': rel === '/index.html' ? 'no-cache' : 'public, max-age=300'
+      'cache-control': isHtml ? 'no-cache' : 'public, max-age=300'
     })
     res.end(buf)
   }catch{
-    serveIndex(res)
+    serveIndex(res, req.headers.host)
   }
 })
 
-/* مسیرهای ناشناخته به صفحهٔ اصلی می‌رسند (SPA) */
-function serveIndex(res){
+/* data-api روی <body> را با آدرس واقعی سرور جایگزین می‌کند تا فرم بداند
+   بک‌اند کجاست؛ برای سایتی که روی GitHub Pages سرو می‌شود لازم است. */
+function injectApi(buf, host){
+  const origin = PUBLIC_ORIGIN || `https://${host}`
+  return Buffer.from(
+    buf.toString('utf8').replace('data-api="/"', `data-api="${origin}"`)
+  )
+}
+
+/* مسیرهای نشناخته به صفحهٔ اصلی می‌رسند (SPA) */
+function serveIndex(res, host){
   readFile(join(ROOT, 'index.html')).then(
-    buf => {
+    raw => {
+      const buf = injectApi(raw, host)
       res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control':'no-cache' })
       res.end(buf)
     },
