@@ -36,11 +36,23 @@ function norm(s){
     .replace(/[أإآ]/g, 'ا')
     .replace(/ؤ/g, 'و').replace(/ئ/g, 'ی')
     .replace(/[ۀة]/g, 'ه')
+    /* الف و واو عربی/لاتینی که یوزرنیم‌های انگلیسی دارند */
+    .replace(/[أإآا]/g, 'ا').replace(/[ؤو]/g, 'و')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
 }
-function isBlocked(s){ return BLOCKED_NAMES.includes(norm(s)) }
+
+/* تطبیق تکه‌ای: «تینا محمدی» و «tina_123» هر دو به «تینا» می‌رسند.
+   چون نام فارسی می‌تواند داخل واژه‌ای بیاید (مثلاً «تیناجان»)، حدس کلمهٔ
+   دوم کافی نیست و زیربرش هم کامل گرفته می‌شود. */
+const stripNonWord = (s) => norm(s).replace(/[^\p{L}\p{N}]+/gu, '')
+
+function isBlocked(s){
+  const t = norm(s)
+  const flat = stripNonWord(s)
+  return BLOCKED_NAMES.some(b => t === b || t.includes(b) || (flat && flat.includes(stripNonWord(b))))
+}
 
 /* ── نشست‌ها: کلید deep-link → chat_id ──────────────────────
    هر کاربری که /start را می‌زند یک کلید یکتا می‌گیرد؛ نتیجهٔ فرم
@@ -178,13 +190,12 @@ function buildMessage(d, who){
   ].filter(l => l !== '').join('\n')
 }
 
-/* فیلدهای «فهرست اسامی» (همراهان) باید تکه‌تکه سنجیده شوند تا «علی، غزل»
-   گرفته شود؛ بقیه با تطابق کامل تا «کافه غزل» بن نشود. */
+/* هر متنی که کاربر فرستاده می‌تواند نام بن را در خود داشته باشد — چه در
+   فهرست همراهان، چه در نام مکان یا ناحیه. */
 function bannedIn(d){
   const foods = Array.isArray(d.foods) ? d.foods : []
-  const parts = [String(d.guests || '')].flatMap(s => s.split(/[,،؛;·\s]+/))
-  const whole = [d.place, d.address, d.region, ...foods].filter(v => typeof v === 'string')
-  return BLOCKED_NAMES.some(b => [...parts, ...whole].some(p => norm(p) === norm(b)))
+  const all = [d.guests, d.place, d.address, d.region, ...foods]
+  return all.filter(v => typeof v === 'string').some(isBlocked)
 }
 
 /* ── سرور HTTP ────────────────────────────────────────────── */

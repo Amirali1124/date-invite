@@ -26,23 +26,30 @@ const state = {
    این فهرست فقط برای بازخورد فوری داخل مرورگر است؛ نسخهٔ اصلی و
    غیرقابل‌دورزدنش BLOCKED_NAMES در سرور است. */
 
-const BANNED = ['غزل'];
+const BANNED = ['غزل', 'تینا', 'tina'];
 
 function norm(s){
   return String(s ?? '')
     .replace(/[ً-ْٰ‌‏‎ـ]/g, '')
     .replace(/[يى]/g, 'ی').replace(/ك/g, 'ک')
-    .replace(/[أإآ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ی')
+    .replace(/[أإآا]/g, 'ا').replace(/[ؤو]/g, 'و').replace(/ئ/g, 'ی')
     .replace(/[ۀة]/g, 'ه')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
 }
 
-/* «علی، سارا» فهرست اسامی است، پس تکه‌تکه سنجیده می‌شود؛ ولی جستجوی
-   آزاد («کافه غزل») نباید بن بدهد، پس آن‌جا تطابق کاملِ عبارت ملاک است. */
-const bannedWord  = (text) => BANNED.find(b => norm(text).split(/[,،؛;·\s]+/).some(p => p === norm(b)));
-const bannedPhrase = (text) => BANNED.find(b => norm(text) === norm(b));
+/* تطبیق تکه‌ای تا «تینا محمدی» و «tina_123» هم بگیرند؛ نرمال‌سازیِ
+   الف/واو عربی یوزرنیم انگلیسی را به فارسی می‌رساند. */
+const stripNonWord = (s) => norm(s).replace(/[^\p{L}\p{N}]+/gu, '');
+
+function bannedWord(text){
+  const t = norm(text);
+  const flat = stripNonWord(text);
+  return BANNED.find(b =>
+    t.includes(norm(b)) || (flat && flat.includes(stripNonWord(b)))
+  );
+}
 
 const banEl = $('#ban');
 let banned = false;
@@ -286,7 +293,7 @@ input.addEventListener('input', () => {
   clearTimeout(searchTimer);
   /* جستجوی خودِ اسم بن پیش از رفتن به سرور متوقف می‌شود؛ ولی «کافه غزل»
      یک جستجوی عادی است و نباید بن بدهد */
-  if (guard(input, bannedPhrase)){
+  if (guard(input)){
     hideResults();
     return;
   }
