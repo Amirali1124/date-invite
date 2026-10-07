@@ -225,14 +225,11 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'OPTIONS'){ res.writeHead(204, cors()); return res.end() }
 
-  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را.
-   lengths طول هر اسم بعد از نرمال‌سازی است، برای تشخیص اینکه کدام اسم‌ها
-   واقعاً ثبت شده‌اند — بدون افشای خود اسم. */
+  /* سلامت — blocked فقط تعداد بن‌ها را می‌گوید، نه اسمشان را */
   if (path === '/api/health'){
     return json(res, 200, {
       ok: true, telegram: !!TOKEN, sessions: sessions.size,
-      blocked: BLOCKED_NAMES.length,
-      lengths: BLOCKED_NAMES.map(s => s.length)
+      blocked: BLOCKED_NAMES.length
     })
   }
 
