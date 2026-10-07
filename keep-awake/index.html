@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>بیدار نگه‌داشتن</title>
+<style>
+  :root{ --bg:#FDF9F5; --ink:#3A1E2A; --soft:#7C6270; --rose:#D2546B; --line:#EFDCD8 }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:28px 20px;
+    background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+    line-height:1.9;
+    -webkit-text-size-adjust:100%;
+  }
+  .card{ width:100%; max-width:380px; }
+  h1{ margin:0 0 4px; font-size:21px; }
+  .sub{ margin:0 0 22px; font-size:13px; color:var(--soft); }
+  .status{
+    display:flex; align-items:center; gap:9px;
+    padding:13px 15px; margin-bottom:16px;
+    border:1px solid var(--line); border-radius:14px;
+    background:#fff; font-size:14px; font-weight:600;
+  }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#BBB; flex:none; }
+  .is-on  .dot{ background:#3FA46A; }
+  .is-off .dot{ background:var(--rose); }
+  .is-wait .dot{ background:#D9A441; }
+  button{
+    width:100%; padding:15px; margin-bottom:10px;
+    border:0; border-radius:14px;
+    background:var(--rose); color:#fff;
+    font:inherit; font-weight:700; font-size:15px;
+    cursor:pointer;
+  }
+  button:active{ filter:brightness(.92); }
+  button.sec{ background:#fff; color:var(--rose); border:1px solid var(--line); font-weight:600; }
+  .log{
+    margin-top:16px; padding:12px 14px;
+    border:1px solid var(--line); border-radius:14px; background:#fff;
+    font-size:11.5px; color:var(--soft); max-height:150px; overflow:auto;
+  }
+  .log div{ padding:2px 0; }
+  .note{ margin:16px 0 0; font-size:11.5px; color:var(--soft); }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>بیدار نگه‌داشتن رندر</h1>
+  <p class="sub">روی این صفحه بگذار و بگذار باز بماند. خودش هر ۸ دقیقه یک‌بار سرور را بیدار می‌کند.</p>
+
+  <div class="status is-wait" id="s">
+    <span class="dot"></span><span id="t">آماده</span>
+  </div>
+
+  <button id="start">روشن کن</button>
+  <button class="sec" id="once">یک‌بار بیدار کن</button>
+
+  <div class="log" id="log"></div>
+
+  <p class="note">
+    برای اینکه این صفحه خودش بیدار بماند، در تنظیمات گوشی برای همین صفحه
+    «Always-on display» یا شارژر بدون بالا رفتن صفحه را روشن کن.
+  </p>
+</div>
+
+<script>
+/* Render پلن رایگان بعد از ۱۵ دقیقه بی‌کاری خاموشش می‌کند و هر بار اولین
+   درخواست حدود ۵۰ ثانیه طول می‌کشد. این صفحه هر ۸ دقیقه یک درخواست سبک
+   می‌فرستد تا آن تایمر هرگز به صفر نرسد. */
+const URL_ = 'https://date-invite-60ir.onrender.com/api/health';
+const EVERY = 8 * 60 * 1000;          // ۸ دقیقه
+
+let timer = null;
+const el = id => document.getElementById(id);
+
+function log(msg){
+  const line = document.createElement('div');
+  const t = new Date();
+  line.textContent =
+    String(t.getHours()).padStart(2,'0') + ':' +
+    String(t.getMinutes()).padStart(2,'0') + ':' +
+    String(t.getSeconds()).padStart(2,'0') + '  ' + msg;
+  el('log').prepend(line);
+}
+
+function paint(kind, text){
+  el('s').className = 'status is-' + kind;
+  el('t').textContent = text;
+}
+
+async function ping(){
+  paint('wait', 'در حال بیدار کردن…');
+  try{
+    const r = await fetch(URL_ + '?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok){ paint('on', 'سرور بیدار است ✅');  log('بیدار'); }
+    else     { paint('off','پاسخ نامعتبر');      log('خطای ' + r.status); }
+  }catch(e){
+    paint('off', 'ارتباط برقرار نشد');
+    log('قطع — ' + e.message);
+  }
+}
+
+function start(){
+  if (timer) return;
+  ping();
+  timer = setInterval(ping, EVERY);
+  el('start').textContent = 'خاموشش کن';
+  log('روشن شد · هر ' + (EVERY/60000) + ' دقیقه');
+}
+
+function stop(){
+  clearInterval(timer);
+  timer = null;
+  el('start').textContent = 'روشن کن';
+  paint('wait', 'خاموش');
+  log('خاموش شد');
+}
+
+el('start').addEventListener('click', () => timer ? stop() : start());
+el('once').addEventListener('click', ping);
+
+/* وقتی صفحه از پس‌زمینه برمی‌گردد، فوراً چک کن — وگرنه تا نوبت بعدی
+   بعدی می‌ماند */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && timer) ping();
+});
+</script>
+</body>
+</html>
