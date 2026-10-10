@@ -26,7 +26,7 @@ const state = {
    این فهرست فقط برای بازخورد فوری داخل مرورگر است؛ نسخهٔ اصلی و
    غیرقابل‌دورزدنش BLOCKED_NAMES در سرور است. */
 
-const BANNED = ['غزل', 'تینا', 'tina', 'ghazal'];
+const BANNED = [];
 
 function norm(s){
   return String(s ?? '')
